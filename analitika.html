@@ -1,0 +1,593 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аналитика библиотеки</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f9fafb;
+        }
+        
+        h1,
+        h2 {
+            text-align: center;
+            color: #333333;
+        }
+        
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+        
+        h2 {
+            font-size: 1.4rem;
+            margin: 30px 0 20px;
+            color: #4e73df;
+        }
+        
+        .chart-wrapper {
+            width: 100%;
+            max-width: 900px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        .chart-container {
+            position: relative;
+            min-height: 400px;
+            width: 100%;
+        }
+        
+        .genre-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .genre-btn {
+            padding: 8px 15px;
+            background: #4e73df;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .genre-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .genre-btn.active {
+            background: #1cc88a;
+            box-shadow: 0 4px 8px rgba(28, 200, 138, 0.3);
+        }
+        
+        .stats-container {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fc;
+            border-radius: 8px;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e3e6f0;
+        }
+        
+        .stat-value {
+            font-weight: bold;
+            color: #4e73df;
+        }
+        
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.3);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .chart-container {
+                min-height: 300px;
+            }
+            h1 {
+                font-size: 1.5rem;
+            }
+            h2 {
+                font-size: 1.2rem;
+            }
+            .genre-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Аналитика библиотеки BookFlow</h1>
+
+    <!-- Радарная диаграмма сравнения жанров -->
+    <div class="chart-wrapper">
+        <h2>Сравнение популярности жанров</h2>
+
+        <div class="genre-buttons" id="genreButtons">
+            <!-- Кнопки будут добавлены через JS -->
+        </div>
+
+        <div class="chart-container">
+            <canvas id="genreRadarChart"></canvas>
+        </div>
+
+        <div class="stats-container" id="statsContainer">
+            <!-- Статистика будет добавлена через JS -->
+        </div>
+    </div>
+
+    <!-- Линейная диаграмма динамики скачиваний -->
+    <div class="chart-wrapper">
+        <h2>Динамика скачиваний по месяцам</h2>
+        <div class="chart-container">
+            <canvas id="downloadsChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // ================== Радарная диаграмма (сравнение жанров) ==================
+
+        // Данные для радарной диаграммы
+        const genres = ['Фантастика', 'Нон-фикшн', 'Романы', 'Научные', 'Детские', 'Учебные'];
+
+        // Статистика по каждому жанру
+        const genreStats = {
+            'Фантастика': {
+                downloads: 12500,
+                favorites: 4800,
+                readingTime: 8.5,
+                rating: 4.7,
+                newTitles: 42,
+                returningReaders: 68
+            },
+            'Нон-фикшн': {
+                downloads: 8700,
+                favorites: 3950,
+                readingTime: 6.8,
+                rating: 4.3,
+                newTitles: 28,
+                returningReaders: 55
+            },
+            'Романы': {
+                downloads: 15200,
+                favorites: 6350,
+                readingTime: 7.9,
+                rating: 4.5,
+                newTitles: 37,
+                returningReaders: 72
+            },
+            'Научные': {
+                downloads: 7200,
+                favorites: 2650,
+                readingTime: 9.3,
+                rating: 4.8,
+                newTitles: 19,
+                returningReaders: 61
+            },
+            'Детские': {
+                downloads: 18200,
+                favorites: 5650,
+                readingTime: 5.5,
+                rating: 4.6,
+                newTitles: 51,
+                returningReaders: 78
+            },
+            'Учебные': {
+                downloads: 9200,
+                favorites: 4150,
+                readingTime: 8.8,
+                rating: 4.4,
+                newTitles: 33,
+                returningReaders: 65
+            }
+        };
+
+        // Цвета для каждого жанра
+        const genreColors = {
+            'Фантастика': '#FF6384',
+            'Нон-фикшн': '#36A2EB',
+            'Романы': '#FFCE56',
+            'Научные': '#4BC0C0',
+            'Детские': '#9966FF',
+            'Учебные': '#FF9F40'
+        };
+
+        // Иконки для каждого жанра
+        const genreIcons = {
+            'Фантастика': '🚀',
+            'Нон-фикшн': '📚',
+            'Романы': '💘',
+            'Научные': '🔬',
+            'Детские': '👶',
+            'Учебные': '🎓'
+        };
+
+        // Создаем кнопки для жанров
+        const genreButtonsContainer = document.getElementById('genreButtons');
+        genres.forEach(genre => {
+            const btn = document.createElement('button');
+            btn.className = 'genre-btn';
+            btn.innerHTML = `${genre} ${genreIcons[genre]}`;
+            btn.style.backgroundColor = genreColors[genre];
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.genre-btn').forEach(b => {
+                    b.classList.remove('active');
+                });
+                btn.classList.add('active');
+                updateRadarChart(genre);
+                updateStats(genre);
+            });
+            genreButtonsContainer.appendChild(btn);
+        });
+
+        // Инициализация радарной диаграммы
+        const radarCtx = document.getElementById('genreRadarChart').getContext('2d');
+        const radarChart = new Chart(radarCtx, {
+            type: 'radar',
+            data: {
+                labels: ['Скачивания', 'В избранном', 'Ср. время чтения', 'Рейтинг', 'Новые книги', 'Постоянные читатели'],
+                datasets: [{
+                    label: 'Статистика жанра',
+                    data: [],
+                    backgroundColor: 'rgba(78, 115, 223, 0.2)',
+                    borderColor: 'rgba(78, 115, 223, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: [],
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.r !== null) {
+                                    if (context.label === 'Скачивания') {
+                                        label += (context.parsed.r / 10).toFixed(1) + ' тыс.';
+                                    } else if (context.label === 'Ср. время чтения') {
+                                        label += (context.parsed.r / 2).toFixed(1) + ' ч';
+                                    } else if (context.label === 'Рейтинг') {
+                                        label += (context.parsed.r / 20).toFixed(1) + ' из 5';
+                                    } else if (context.label === 'Новые книги') {
+                                        label += context.parsed.r + ' книг';
+                                    } else if (context.label === 'Постоянные читатели') {
+                                        label += context.parsed.r + '%';
+                                    } else {
+                                        label += context.parsed.r;
+                                    }
+                                }
+                                return label;
+                            },
+                            afterLabel: function(context) {
+                                return 'Жанр: ' + currentGenre + ' ' + genreIcons[currentGenre];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    r: {
+                        angleLines: {
+                            display: true,
+                            color: 'rgba(200, 200, 200, 0.3)'
+                        },
+                        suggestedMin: 0,
+                        ticks: {
+                            display: false,
+                            stepSize: 5
+                        },
+                        pointLabels: {
+                            font: {
+                                size: window.innerWidth < 768 ? 10 : 12
+                            },
+                            color: '#5a5c69'
+                        }
+                    }
+                },
+                animation: {
+                    duration: 1000,
+                    easing: 'easeOutQuart'
+                }
+            }
+        });
+
+        let currentGenre = 'Фантастика';
+        document.querySelector('.genre-btn').classList.add('active');
+
+        // Функция обновления радарной диаграммы
+        function updateRadarChart(genre) {
+            currentGenre = genre;
+            const stats = genreStats[genre];
+
+            radarChart.data.datasets[0].data = [
+                stats.downloads / 1000 * 10, // Масштабируем для визуализации
+                stats.favorites / 100,
+                stats.readingTime * 2,
+                stats.rating * 20,
+                stats.newTitles,
+                stats.returningReaders
+            ];
+
+            // Устанавливаем цвета точек
+            const pointColors = [];
+            for (let i = 0; i < radarChart.data.labels.length; i++) {
+                pointColors.push(genreColors[genre]);
+            }
+            radarChart.data.datasets[0].pointBackgroundColor = pointColors;
+
+            radarChart.data.datasets[0].backgroundColor = genreColors[genre] + '33';
+            radarChart.data.datasets[0].borderColor = genreColors[genre];
+
+            radarChart.update();
+        }
+
+        // Функция обновления статистики
+        function updateStats(genre) {
+            const stats = genreStats[genre];
+            const container = document.getElementById('statsContainer');
+
+            container.innerHTML = `
+                <h3>${genre} ${genreIcons[genre]}</h3>
+                <div class="stat-item">
+                    <span>Скачиваний:</span>
+                    <span class="stat-value">${new Intl.NumberFormat('ru-RU').format(stats.downloads)}</span>
+                </div>
+                <div class="stat-item">
+                    <span>В избранном:</span>
+                    <span class="stat-value">${new Intl.NumberFormat('ru-RU').format(stats.favorites)}</span>
+                </div>
+                <div class="stat-item">
+                    <span>Среднее время чтения:</span>
+                    <span class="stat-value">${stats.readingTime.toFixed(1)} ч</span>
+                </div>
+                <div class="stat-item">
+                    <span>Рейтинг:</span>
+                    <span class="stat-value">${stats.rating.toFixed(1)} ★</span>
+                </div>
+                <div class="stat-item">
+                    <span>Новых книг в этом месяце:</span>
+                    <span class="stat-value">${stats.newTitles}</span>
+                </div>
+                <div class="stat-item">
+                    <span>Постоянных читателей:</span>
+                    <span class="stat-value">${stats.returningReaders}%</span>
+                </div>
+            `;
+        }
+
+        // Инициализация радарной диаграммы
+        updateRadarChart(currentGenre);
+        updateStats(currentGenre);
+
+        // ================== Линейная диаграмма (динамика скачиваний) ==================
+
+        // Данные для линейной диаграммы
+        const months = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+        const dailyData = [450, 620, 800, 550, 900, 1000, 750, 820, 950, 1100, 1200, 1300];
+        const weeklyData = [3200, 3800, 4200, 3500, 4800, 5200, 4400, 5000, 5800, 6500, 7000, 7500];
+        const monthlyData = [15000, 18000, 21000, 17000, 23000, 25000, 20000, 22000, 27000, 30000, 32000, 35000];
+
+        // Находим рекордные дни
+        const maxDailyIndex = dailyData.indexOf(Math.max(...dailyData));
+        const maxWeeklyIndex = weeklyData.indexOf(Math.max(...weeklyData));
+        const maxMonthlyIndex = monthlyData.indexOf(Math.max(...monthlyData));
+
+        // Конфиг линейной диаграммы
+        const lineCtx = document.getElementById('downloadsChart').getContext('2d');
+        const lineChart = new Chart(lineCtx, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [{
+                    label: 'Скачиваний (день)',
+                    data: dailyData,
+                    borderColor: '#FF6384',
+                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.3,
+                    pointBackgroundColor: function(context) {
+                        return context.dataIndex === maxDailyIndex ? '#FF6384' : '#FFFFFF';
+                    },
+                    pointRadius: function(context) {
+                        return context.dataIndex === maxDailyIndex ? 8 : 5;
+                    },
+                    pointBorderWidth: 2
+                }, {
+                    label: 'Скачиваний (неделя)',
+                    data: weeklyData,
+                    borderColor: '#36A2EB',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.3,
+                    pointBackgroundColor: function(context) {
+                        return context.dataIndex === maxWeeklyIndex ? '#36A2EB' : '#FFFFFF';
+                    },
+                    pointRadius: function(context) {
+                        return context.dataIndex === maxWeeklyIndex ? 8 : 5;
+                    }
+                }, {
+                    label: 'Скачиваний (месяц)',
+                    data: monthlyData,
+                    borderColor: '#4BC0C0',
+                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.3,
+                    pointBackgroundColor: function(context) {
+                        return context.dataIndex === maxMonthlyIndex ? '#4BC0C0' : '#FFFFFF';
+                    },
+                    pointRadius: function(context) {
+                        return context.dataIndex === maxMonthlyIndex ? 8 : 5;
+                    }
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('ru-RU').format(context.parsed.y);
+                                }
+                                if (
+                                    (context.datasetIndex === 0 && context.dataIndex === maxDailyIndex) ||
+                                    (context.datasetIndex === 1 && context.dataIndex === maxWeeklyIndex) ||
+                                    (context.datasetIndex === 2 && context.dataIndex === maxMonthlyIndex)
+                                ) {
+                                    label += ' (РЕКОРД!)';
+                                }
+                                return label;
+                            }
+                        }
+                    },
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: {
+                                size: window.innerWidth < 768 ? 12 : 14
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        ticks: {
+                            callback: function(value) {
+                                return new Intl.NumberFormat('ru-RU').format(value);
+                            },
+                            font: {
+                                size: window.innerWidth < 768 ? 10 : 12
+                            }
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: {
+                                size: window.innerWidth < 768 ? 10 : 12
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    duration: 2000,
+                    easing: 'easeOutQuart',
+                    onComplete: function() {
+                        const points = lineChart.getDatasetMeta(0).data[maxDailyIndex];
+                        points.custom = points.custom || {};
+                        points.custom.pulse = true;
+
+                        const pointsWeekly = lineChart.getDatasetMeta(1).data[maxWeeklyIndex];
+                        pointsWeekly.custom = pointsWeekly.custom || {};
+                        pointsWeekly.custom.pulse = true;
+
+                        const pointsMonthly = lineChart.getDatasetMeta(2).data[maxMonthlyIndex];
+                        pointsMonthly.custom = pointsMonthly.custom || {};
+                        pointsMonthly.custom.pulse = true;
+                    }
+                }
+            }
+        });
+
+        // Кастомная анимация точек для линейной диаграммы
+        Chart.register({
+            id: 'pointPulse',
+            afterDraw: function(chart) {
+                const ctx = chart.ctx;
+                chart.data.datasets.forEach(function(dataset, i) {
+                    const meta = chart.getDatasetMeta(i);
+                    meta.data.forEach(function(point, index) {
+                        if (point.custom && point.custom.pulse) {
+                            ctx.save();
+                            ctx.shadowColor = dataset.borderColor;
+                            ctx.shadowBlur = 15;
+                            ctx.shadowOffsetX = 0;
+                            ctx.shadowOffsetY = 0;
+                            ctx.fillStyle = dataset.borderColor;
+                            ctx.beginPath();
+                            ctx.arc(
+                                point.x,
+                                point.y,
+                                point.options.radius * 1.5,
+                                0,
+                                Math.PI * 2
+                            );
+                            ctx.closePath();
+                            ctx.globalAlpha = 0.3;
+                            ctx.fill();
+                            ctx.restore();
+                        }
+                    });
+                });
+            }
+        });
+
+        // Обработчик изменения размера окна
+        window.addEventListener('resize', function() {
+            // Обновляем радарную диаграмму
+            radarChart.options.scales.r.pointLabels.font.size = window.innerWidth < 768 ? 10 : 12;
+            radarChart.update();
+
+            // Обновляем линейную диаграмму
+            lineChart.options.plugins.legend.labels.font.size = window.innerWidth < 768 ? 12 : 14;
+            lineChart.options.scales.y.ticks.font.size = window.innerWidth < 768 ? 10 : 12;
+            lineChart.options.scales.x.ticks.font.size = window.innerWidth < 768 ? 10 : 12;
+            lineChart.update();
+        });
+    </script>
+</body>
+
+</html>
